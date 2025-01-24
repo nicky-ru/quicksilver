@@ -11,9 +11,18 @@ export class QueryOrchestrator {
     this.tools = tools;
     this.llmService = new LLMService();
   }
+  
+  async initRAG() {
+    await Promise.all(
+      this.tools.map(async (tool) => {
+        await this.llmService.fastllm.addJSONKnowledge!(tool);
+      }),
+    );
+  }
 
   // TODO: input should include user query and context
   async process(input: string): Promise<string> {
+    console.log("input", input);
     try {
       const selectedTools = await this.selectTools(input);
       if (!selectedTools.length) {
@@ -61,12 +70,14 @@ export class QueryOrchestrator {
     const toolOutputs = await Promise.all(
       tools.map((tool) => tool.execute(input, this.llmService)),
     );
+    console.log("toolOutputs", toolOutputs);
     const finalPrompt = finalResponseTemplate({
       input,
       tools,
       toolOutputs,
     });
     const output = await this.llmService.llm.generate(finalPrompt);
+    console.log("output", output);
     const parsedOutput = extractContentFromTags(output, "response");
     return parsedOutput || "Could not generate response";
   }

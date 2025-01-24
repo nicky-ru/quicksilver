@@ -1,7 +1,7 @@
 import { LLMService } from "../../services/llm-service";
 import { APITool } from "../tool";
 import { extractContentFromTags } from "../../utils/parsers";
-import { WeatherData, WeatherForecast } from "./types";
+import { WeatherData, WeatherForecast, WeatherForecastDP } from "./types";
 
 interface CoordinatesInput {
   lat: number;
@@ -35,7 +35,7 @@ abstract class BaseWeatherAPITool extends APITool<CoordinatesInput> {
     try {
       const parsedInput = await this.parseInput(userInput, llmService);
       const weatherData = await this.fetchWeatherData(parsedInput);
-      return this.formatWeatherData(parsedInput, weatherData);
+      return await this.formatWeatherData(parsedInput, weatherData, llmService);
     } catch (error: any) {
       console.error("Error fetching weather data, skipping...");
       console.error(error.message);
@@ -72,6 +72,7 @@ abstract class BaseWeatherAPITool extends APITool<CoordinatesInput> {
   protected abstract formatWeatherData(
     coords: CoordinatesInput,
     data: any,
+    llmService: LLMService,
   ): Promise<string>;
 }
 
@@ -88,18 +89,21 @@ export class CurrentWeatherAPITool extends BaseWeatherAPITool {
   protected async formatWeatherData(
     coords: CoordinatesInput,
     weatherData: WeatherData,
+    llmService: LLMService,
   ): Promise<string> {
-    const {
-      condition,
-      temperature,
-      feels_like,
-      humidity,
-      pressure,
-      wind_speed,
-      wind_direction,
-    } = weatherData;
+    // const {
+    //   condition,
+    //   temperature,
+    //   feels_like,
+    //   humidity,
+    //   pressure,
+    //   wind_speed,
+    //   wind_direction,
+    // } = weatherData;
 
-    return `The current weather in ${coords.lat}, ${coords.lon} is ${condition} with a temperature of ${temperature}°C${feels_like && ` (Feels like ${feels_like}°C)`}.${humidity && ` Humidity: ${humidity}%`}${pressure && ` Pressure: ${pressure} hPa`}${wind_speed && ` Wind Speed: ${wind_speed} m/s`}${wind_direction && ` Wind Direction: ${wind_direction}°`}`;
+    await llmService.llm.addJSONKnowledge!(weatherData);
+    // return `The current weather in ${coords.lat}, ${coords.lon} is ${condition} with a temperature of ${temperature}°C${feels_like && ` (Feels like ${feels_like}°C)`}.${humidity && ` Humidity: ${humidity}%`}${pressure && ` Pressure: ${pressure} hPa`}${wind_speed && ` Wind Speed: ${wind_speed} m/s`}${wind_direction && ` Wind Direction: ${wind_direction}°`}`;
+    return "Latitude: " + coords.lat + " Longitude: " + coords.lon + " Location name: " + weatherData.location_name + " Timestamp: " + weatherData.timestamp + " Timezone: " + weatherData.timezone;
   }
 }
 
@@ -116,14 +120,34 @@ export class ForecastWeatherAPITool extends BaseWeatherAPITool {
   protected async formatWeatherData(
     coords: CoordinatesInput,
     forecastData: WeatherForecast,
+    llmService: LLMService,
   ): Promise<string> {
-    const summaries = forecastData.map((item) => {
-      const { temperature, condition_desc, wind_speed } = item;
-      const date = new Date(item.timestamp * 1000).toLocaleString();
-      return `On ${date}, the temperature is ${temperature}°C, the weather is ${condition_desc}, and the wind speed is ${wind_speed} m/s.`;
-    });
+    // const summaries = forecastData.map((item) => {
+    //   const { temperature, condition_desc, wind_speed } = item;
+    //   const date = new Date(item.timestamp * 1000).toLocaleString();
+    //   return `On ${date}, the temperature is ${temperature}°C, the weather is ${condition_desc}, and the wind speed is ${wind_speed} m/s.`;
+    // });
 
-    return `Weather Forecast Data for ${coords.lat}, ${coords.lon}: ${summaries.join(" ")}`;
+    await Promise.all(
+      forecastData.map(async (item: any) => {
+        delete item.id;
+        delete item.created_at;
+        delete item.updated_at;
+        await llmService.llm.addJSONKnowledge!(item);
+      }),
+    );
+    return (
+      "Latitude: " +
+      coords.lat +
+      " Longitude: " +
+      coords.lon +
+      " Location name: " +
+      forecastData[0].location_name +
+      " Starting from: " +
+      forecastData[0].timestamp +
+      " Ending at: " +
+      forecastData[forecastData.length - 1].timestamp
+    );
   }
 }
 

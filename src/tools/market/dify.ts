@@ -5,6 +5,8 @@ import { handleStreamResponse } from "../../utils/stream_utils";
 import { extractContentFromTags } from "../../utils/parsers";
 import { LLMService } from "../../services/llm-service";
 
+export const DEPIN_PROJECTS_URL = "https://metrics-api.w3bstream.com/project";
+
 export class DePINTool extends APITool<any> {
   constructor() {
     super({
@@ -35,9 +37,16 @@ export class DePINTool extends APITool<any> {
 
   async execute(input: string, llmService: LLMService): Promise<string> {
     try {
-      const parsedInput = await this.parseInput(input, llmService);
-      const apiKey = process.env.DEPIN_API_KEY!;
-      return callDify(this.baseUrl, apiKey, parsedInput);
+      const res = await fetch(DEPIN_PROJECTS_URL);
+      const projectsData = await res.json();
+      await Promise.all(
+        projectsData.map(async (item: any) => {
+          await llmService.llm.addJSONKnowledge!(item);
+        }),
+      );
+      return await this.parseInput(input, llmService);
+      // const apiKey = process.env.DEPIN_API_KEY!;
+      // return callDify(this.baseUrl, apiKey, parsedInput);
     } catch (e: any) {
       console.error("Error fetching dify data, skipping...");
       console.error(e.message);

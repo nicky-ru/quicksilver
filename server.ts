@@ -6,6 +6,8 @@ const app = new Hono();
 
 const sentai = new SentientAI();
 
+sentai.initRAG();
+
 app.get("/", (c) => {
   return c.text("hello world, Sentient AI!");
 });

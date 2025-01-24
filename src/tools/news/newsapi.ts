@@ -1,6 +1,7 @@
 import axios from "axios";
 
 import { APITool } from "../tool";
+import { LLMService } from "../../services/llm-service";
 
 interface NewsAPIResponse {
   status: string;
@@ -24,18 +25,20 @@ export class NewsAPITool extends APITool<any> {
     }
   }
 
-  async execute(_: string): Promise<string> {
+  async execute(_: string, llmService: LLMService): Promise<string> {
     const apiKey = process.env.NEWSAPI_API_KEY!;
     try {
       const url = `https://newsapi.org/v2/top-headlines?country=us&apiKey=${apiKey}`;
       const response = await axios.get<NewsAPIResponse>(url);
 
       if (response.data.status === "ok") {
-        const headlines = response.data.articles.map(
-          (article) =>
-            `- [${article.title}](${article.url}) - ${article.source.name}`,
-        ); // Markdown links
-        return headlines.slice(0, NUMBER_OF_HEADLINES).join("\n");
+        // await llmService.llm.addJSONKnowledge!(response.data.articles);
+        await Promise.all(
+          response.data.articles.map(async (article) => {
+            await llmService.llm.addJSONKnowledge!(article);
+          }),
+        );
+        return "";
       } else {
         return `Error fetching headlines: ${response.data.status}`; // Return error as string
       }

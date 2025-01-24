@@ -26,7 +26,7 @@ export class LLMService {
 
   private initFastLLMOpenAI(): void {
     this.fastllm = new OpenAILLM({
-      model: process.env.LLM_MODEL || "gpt-3.5-turbo",
+      model: process.env.OPENAI_FAST_LLM_MODEL || "gpt-3.5-turbo",
     });
   }
 

@@ -10,6 +10,10 @@ export class SentientAI {
   orchestrator: QueryOrchestrator;
 
   constructor() {
+    
+  }
+
+  async initRAG() {
     this.orchestrator = new QueryOrchestrator({
       tools: [
         new NewsAPITool(),
@@ -18,6 +22,9 @@ export class SentientAI {
         new ForecastWeatherAPITool(),
       ],
     });
+    await this.orchestrator.llmService.fastllm.initRAG!();
+    await this.orchestrator.llmService.llm.initRAG!();
+    await this.orchestrator.initRAG();
   }
 
   async execute(input: string): Promise<string> {

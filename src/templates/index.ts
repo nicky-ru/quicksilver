@@ -2,7 +2,7 @@ import { PromptContext } from "types";
 
 export const finalResponseTemplate = (ctx: PromptContext) => `
 You are an advanced AI assistant capable of using external tools to gather information and provide thoughtful, concise answers to user queries. Your task is to analyze the provided information and respond to the user's question effectively.
-
+Current time: ${new Date().toISOString()}
 Here is the user's input:
 <user_input>
 ${ctx.input}
@@ -18,13 +18,15 @@ Here are the outputs from the tools:
 ${ctx.toolOutputs.join(", ")}
 </tool_outputs>
 
+The tools output was saved in the vector database.
+
 Before formulating your response, wrap your analysis inside <analysis> tags. Follow these steps:
 
 1. Identify the main questions or topics in the user's input.
-2. Carefully review the tool outputs to ensure you have accurate information:
-   - Quote relevant parts of the tool outputs to support your analysis.
+2. Carefully review the provided context to ensure you have accurate information:
+   - Quote relevant parts of the context to support your analysis.
    - Identify any gaps in the information or areas where more context might be needed.
-   - Consider potential biases or limitations in the tool outputs.
+   - Consider potential biases or limitations in the context.
 3. Determine if there's a direct connection between different pieces of information (if applicable).
 4. Consider alternative interpretations of the data if applicable.
 5. Prioritize the information based on relevance to the user's query.
@@ -44,8 +46,8 @@ Example output structure (do not copy the content, only the format):
 
 <analysis>
 1. Main questions: [List main questions]
-2. Tool output analysis:
-   - Key information: [Summarize key information from tool outputs]
+2. Context analysis:
+   - Key information: [Summarize key information from context]
    - Relevant quotes: [Include supporting quotes]
    - Information gaps: [Note any missing or unclear information]
    - Potential biases/limitations: [Describe any identified biases or limitations]
@@ -59,9 +61,7 @@ Example output structure (do not copy the content, only the format):
 [Provide a concise, informative paragraph that directly addresses the user's query, incorporating the analyzed information and any required mention handles.]
 </response>
 
-Remember to prioritize accuracy, relevance, and clarity in your response.
-Don't include any information that was not asked from the user.
-Provide analysis in <analysis> tags and response in <response> tags.
+Don't forget to include the response in <response> tags.
 `;
 
 export const toolSelectionTemplate = (
@@ -70,7 +70,7 @@ export const toolSelectionTemplate = (
 ) => `
 Input: ${input}
 
-Available Tools: ${JSON.stringify(availableTools.map((tool) => ({ name: tool.name, description: tool.description, output: tool.output })))}
+Available Tools: ${JSON.stringify(availableTools.map((tool) => tool.name))}
 
 Select necessary tools to respond the user query and return a list of tool names.
 If no tool is needed, return an empty list.
